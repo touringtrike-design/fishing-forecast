@@ -46,9 +46,14 @@ pub async fn fetch_current_weather(
 
     tracing::debug!("Weather response: {:?}", resp);
 
-    let time = DateTime::parse_from_rfc3339(&resp.current.time)
-        .context("invalid open-meteo time")?
-        .with_timezone(&Utc);
+    // Parse time - Open-Meteo returns simplified format like "2026-02-07T16:45"
+    let time = if let Ok(parsed) = DateTime::parse_from_rfc3339(&format!("{}:00+00:00", resp.current.time)) {
+        parsed.with_timezone(&Utc)
+    } else if let Ok(parsed) = chrono::NaiveDateTime::parse_from_str(&resp.current.time, "%Y-%m-%dT%H:%M") {
+        DateTime::<Utc>::from_naive_utc_and_offset(parsed, Utc)
+    } else {
+        anyhow::bail!("invalid time format: {}", resp.current.time)
+    };
 
     Ok(WeatherCurrent {
         temperature_c: resp.current.temperature_2m,

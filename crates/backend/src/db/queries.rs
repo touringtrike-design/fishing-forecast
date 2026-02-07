@@ -188,17 +188,20 @@ pub async fn get_fish_species(
     _country_code: &str,
     _language: &str,
 ) -> anyhow::Result<Vec<FishItemDb>> {
-    // Simplified version for SQLite
+    tracing::debug!("Querying fish_species table");
+    
+    // Query fish_species table directly
     let rows = sqlx::query_as::<_, FishItemDb>(
         r#"
-        SELECT 'Щука', 'Pike' UNION ALL
-        SELECT 'Карась', 'Carp' UNION ALL
-        SELECT 'Окунь', 'Perch' UNION ALL
-        SELECT 'Лящ', 'Bream'
+        SELECT id, name_uk as name, scientific_name
+        FROM fish_species
+        ORDER BY name_uk
         "#,
     )
     .fetch_all(pool)
     .await?;
 
+    tracing::debug!("Found {} fish species", rows.len());
+    
     Ok(rows)
 }

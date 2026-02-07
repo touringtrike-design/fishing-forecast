@@ -13,9 +13,6 @@ extern "C" {
     fn updateUserMarker(lat: f64, lon: f64, heading: f64, wind_direction: f64);
     
     #[wasm_bindgen(js_namespace = window)]
-    fn getUserLocation(callback: &Closure<dyn Fn(f64, f64)>);
-    
-    #[wasm_bindgen(js_namespace = window)]
     fn setLeafletClickHandler(callback: &Closure<dyn Fn(f64, f64)>);
 }
 
@@ -47,6 +44,8 @@ pub fn MapView(props: MapViewProps) -> Element {
             let init_lon = 31.0;
             let init_zoom = 6;
             
+            web_sys::console::log_1(&"🗺️ Rust: Starting map initialization".into());
+            
             // Initialize Leaflet map
             initLeafletMap("leaflet-map", init_lat, init_lon, init_zoom);
             
@@ -58,17 +57,12 @@ pub fn MapView(props: MapViewProps) -> Element {
             setLeafletClickHandler(&callback);
             callback.forget(); // Keep callback alive
             
-            // Get user location with browser geolocation API
-            spawn({
-                async move {
-                    // Simulate geolocation with default for now
-                    let (lat, lon) = (50.45, 30.52); // Kyiv default
-                    user_location.set((lat, lon));
-                    updateUserMarker(lat, lon, 0.0, 0.0);
-                }
-            });
+            web_sys::console::log_1(&"✅ Rust: Map initialized".into());
             
             *map_initialized.write() = true;
+            
+            // Let JavaScript handle geolocation and user marker
+            // It will call updateUserMarker automatically
         }
     });
     
@@ -83,7 +77,8 @@ pub fn MapView(props: MapViewProps) -> Element {
     
     rsx! {
         div {
-            class: "w-full rounded-lg shadow-md relative",
+            class: "w-full h-full rounded-lg shadow-md relative",
+            style: "width: 100%; height: 100%; position: relative;",
             
             // Інформаційна панель
             div {
@@ -105,11 +100,11 @@ pub fn MapView(props: MapViewProps) -> Element {
                 })}
             }
             
-            // Leaflet map container
+            // Leaflet map container - fullscreen
             div {
                 id: "leaflet-map",
-                class: "w-full rounded-lg",
-                style: "height: 500px; width: 100%; z-index: 1;"
+                class: "w-full h-full rounded-lg",
+                style: "height: 100%; width: 100%; z-index: 1;"
             }
         }
     }

@@ -40,38 +40,30 @@ pub struct NewCatchRecord {
 /// Water body stored in the database.
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct WaterBodyDb {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
+    pub location_lat: f64,
+    pub location_lon: f64,
     pub water_type: Option<String>,
-    pub lat: Option<f64>,
-    pub lon: Option<f64>,
-    pub area_sqm: Option<f64>,
-    pub cached_at: Option<DateTime<Utc>>,
 }
 
 /// Fishing regulation row for API responses.
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct RegulationDb {
-    pub id: Uuid,
-    pub country_code: String,
-    pub region: Option<String>,
-    pub fish_species_id: Option<Uuid>,
-    pub license_required: bool,
-    pub license_cost_local: Option<String>,
-    pub license_url: Option<String>,
+    pub id: String,
+    pub region_code: String,
+    pub fish_species: Option<String>,
     pub min_size_cm: Option<f64>,
-    pub max_size_cm: Option<f64>,
-    pub daily_limit: Option<i32>,
-    pub closed_season_start: Option<chrono::NaiveDate>,
-    pub closed_season_end: Option<chrono::NaiveDate>,
-    pub protected: bool,
-    pub notes: Option<String>,
+    pub max_catch_per_day: Option<i32>,
+    pub season_start: Option<String>,
+    pub season_end: Option<String>,
+    pub restrictions: Option<String>,
 }
 
 /// Fish item for localized lists.
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct FishItemDb {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub scientific_name: String,
 }

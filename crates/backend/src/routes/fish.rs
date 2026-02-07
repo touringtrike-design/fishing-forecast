@@ -18,6 +18,8 @@ pub async fn fish_handler(
     let country = query.country.unwrap_or_else(|| "EU".to_string()).to_uppercase();
     let language = query.language.unwrap_or_else(|| "en".to_string()).to_lowercase();
 
+    tracing::debug!("Fish handler called: country={}, language={}", country, language);
+
     match queries::get_fish_species(&state.db, &country, &language).await {
         Ok(rows) => Json::<Vec<_>>(rows).into_response(),
         Err(err) => {

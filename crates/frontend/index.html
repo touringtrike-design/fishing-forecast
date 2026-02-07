@@ -19,6 +19,28 @@
   <body>
     <div id="main"></div>
     
+    <style>
+      /* Ensure Leaflet container has proper dimensions */
+      #leaflet-map {
+        position: relative !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 1;
+      }
+      
+      body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      
+      #main {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    
     <script>
       // Global variables for Leaflet map
       let fishingMap = null;
@@ -54,9 +76,157 @@
         }
       };
       
+      // Request geolocation on page load and update marker
+      function requestGeolocationWithRetry() {
+        if (navigator.geolocation) {
+          console.log('🌍 Requesting geolocation from browser...');
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const accuracy = position.coords.accuracy;
+              console.log('✅ Geolocation success:', lat.toFixed(4), lon.toFixed(4), 'accuracy:', Math.round(accuracy), 'm');
+              userLocation = { lat: lat, lon: lon };
+              
+              // Store in localStorage for next visit
+              try {
+                localStorage.setItem('user_location', JSON.stringify(userLocation));
+              } catch (e) {
+                console.log('Could not save to localStorage:', e);
+              }
+              
+              // Update marker - IMPORTANT: use the actual coordinates
+              console.log('📍 Attempting to update marker with real geolocation...');
+              window.updateUserMarker(lat, lon, 0.0, 0.0);
+            },
+            function(error) {
+              console.warn('❌ Geolocation error:', error.code, error.message);
+              // Try to restore from localStorage
+              try {
+                const stored = localStorage.getItem('user_location');
+                if (stored) {
+                  const loc = JSON.parse(stored);
+                  console.log('Using stored location:', loc.lat, loc.lon);
+                  userLocation = loc;
+                  window.updateUserMarker(loc.lat, loc.lon, 0.0, 0.0);
+                  return;
+                }
+              } catch (e) {
+                console.log('Could not restore from localStorage:', e);
+              }
+              // Fall back to Kyiv center
+              console.log('Using Kyiv as fallback');
+              userLocation = { lat: 50.45, lon: 30.52 };
+              window.updateUserMarker(50.45, 30.52, 0.0, 0.0);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 0
+            }
+          );
+        } else {
+          console.log('Geolocation not supported by this browser');
+          userLocation = { lat: 50.45, lon: 30.52 };
+        }
+      }
+      
+      // Request geolocation immediately on page load
+      document.addEventListener('DOMContentLoaded', requestGeolocationWithRetry);
+      
+      // Also try after delay to ensure browser permissions are ready
+      setTimeout(requestGeolocationWithRetry, 500);
+      setTimeout(requestGeolocationWithRetry, 2000);
+      
+      // Watch for the leaflet-map container and ensure it's initialized
+      function checkAndInitializeMap() {
+        const container = document.getElementById('leaflet-map');
+        if (container && !fishingMap) {
+          console.log('📍 Leaflet container found, container size:', container.offsetWidth, 'x', container.offsetHeight);
+          if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+            console.log('🗺️ Container has size, initializing map...');
+            // Map will be initialized by Rust code, but let's trigger a check
+            setTimeout(() => {
+              if (!fishingMap) {
+                console.log('⚠️ Map still not initialized, checking...');
+              } else {
+                console.log('✅ Map is ready, triggering geolocation update...');
+                requestGeolocationWithRetry();
+              }
+            }, 500);
+          } else {
+            console.log('⚠️ Container not ready yet, size:', container.offsetWidth, 'x', container.offsetHeight);
+          }
+        }
+      }
+      
+      // Check for container every 100ms for first 2 seconds
+      let checkCount = 0;
+      const mapCheckInterval = setInterval(() => {
+        checkAndInitializeMap();
+        checkCount++;
+        if (checkCount > 20) {
+          clearInterval(mapCheckInterval);
+        }
+      }, 100);
+      
+      // Add CSS animations for user marker
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes pulse-ring {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7), 0 0 0 10px rgba(59, 130, 246, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.5), 0 0 0 20px rgba(59, 130, 246, 0.2);
+          }
+          100% {
+            box-shadow: 0 0 0 20px rgba(59, 130, 246, 0.2), 0 0 0 30px rgba(59, 130, 246, 0);
+          }
+        }
+        
+        @keyframes pulse-dot {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.9;
+          }
+        }
+        
+        .user-location-pulse {
+          animation: pulse-ring 2s infinite;
+        }
+        
+        .user-location-dot {
+          animation: pulse-dot 2s infinite;
+        }
+      `;
+      document.head.appendChild(style);
+      
       // Update user marker on map
       window.updateUserMarker = function(lat, lon, heading, windDirection) {
-        if (!fishingMap) return;
+        console.log('📌 updateUserMarker called with:', lat.toFixed(4), lon.toFixed(4), 'fishingMap ready:', !!fishingMap);
+        
+        if (!fishingMap) {
+          console.log('⚠️ Map not ready for updateUserMarker, but continuing...');
+          // Try to initialize map if not done yet
+          const container = document.getElementById('leaflet-map');
+          if (container && !container.firstChild) {
+            console.log('🗺️ Initializing map from updateUserMarker');
+            window.initLeafletMap('leaflet-map', lat, lon, 10);
+          } else if (!container) {
+            console.error('❌ Container not found!');
+            return;
+          }
+          // Map should be ready now, try adding marker
+          setTimeout(() => window.updateUserMarker(lat, lon, heading, windDirection), 500);
+          return;
+        }
+        
+        console.log('✅ Map is ready, adding user marker at', lat.toFixed(4), lon.toFixed(4));
         
         // Store wind direction
         currentWindDirection = windDirection || 0;
@@ -69,31 +239,36 @@
           fishingMap.removeLayer(windArrow);
         }
         
-        // Create user icon (person viewed from top with compass arrow)
+        // Create modern GPS user marker with fishing spot marker
         const userIcon = L.divIcon({
-          className: 'user-location-marker',
-          html: `<div style="position: relative; width: 40px; height: 40px;">
-            <!-- User circle with rotation -->
-            <div style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; 
-                        background: radial-gradient(circle at 30% 30%, #4f46e5, #3730a3);
-                        border: 3px solid white; border-radius: 50%; 
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                        display: flex; align-items: center; justify-content: center;">
-              <!-- Compass arrow pointing in heading direction -->
-              <div style="transform: rotate(${heading}deg); font-size: 18px;">⬆️</div>
-            </div>
-            <!-- User icon inside -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                        font-size: 20px;">👤</div>
-          </div>`,
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
+          className: 'user-location-marker user-location-dot',
+          html: `<svg width="56" height="66" viewBox="0 0 56 66">
+            <!-- Red circle (fishing spot marker) at top -->
+            <circle cx="28" cy="8" r="8" fill="#ff5252" stroke="#ff5252" stroke-width="1.5"/>
+            
+            <!-- Light pink shimmer on circle -->
+            <ellipse cx="23" cy="5" rx="2" ry="2.5" fill="#ff8a80" opacity="0.6"/>
+            
+            <!-- Stem/pole (dark gray) connecting ball to crosshair -->
+            <rect x="26" y="16" width="4" height="40" rx="2" fill="#3d4d57"/>
+            
+            <!-- Crosshair center point (this will be anchored to map coordinates) -->
+            <!-- Left crossing pole (dark gray) -->
+            <line x1="8" y1="56" x2="48" y2="56" stroke="#3d4d57" stroke-width="6" stroke-linecap="round"/>
+            
+            <!-- Right crossing pole (dark gray) -->
+            <line x1="28" y1="40" x2="28" y2="66" stroke="#3d4d57" stroke-width="6" stroke-linecap="round"/>
+          </svg>`,
+          iconSize: [56, 66],
+          // Anchor at crosshair intersection point (center bottom)
+          iconAnchor: [28, 56],
+          popupAnchor: [0, -50]
         });
         
         userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(fishingMap);
-        userMarker.bindPopup('<strong>📍 Ваше місце розташування</strong>');
+        userMarker.bindPopup(`<div style="text-align: center; padding: 5px;"><strong style="color: #2563eb;">📍 Ваше місце розташування</strong><br/><span style="font-family: monospace; font-size: 12px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span></div>`);
         
-        // Add wind direction arrow
+        // Add wind direction arrow if provided  
         if (windDirection !== undefined && windDirection !== null) {
           const windIcon = L.divIcon({
             className: 'wind-arrow-marker',
@@ -121,12 +296,29 @@
       
       // Initialize Leaflet map
       window.initLeafletMap = function(containerId, lat, lon, zoom) {
+        console.log('🗺️ Initializing Leaflet map in container:', containerId);
+        
         if (fishingMap) {
+          console.log('Removing existing map');
           fishingMap.remove();
         }
         
+        // Get container element
+        const container = document.getElementById(containerId);
+        if (!container) {
+          console.error('❌ Container element not found:', containerId);
+          return;
+        }
+        
+        console.log('Container found, size:', container.offsetWidth, 'x', container.offsetHeight);
+        
         // Create map centered on Ukraine
-        fishingMap = L.map(containerId).setView([lat, lon], zoom);
+        fishingMap = L.map(containerId, {
+          attributionControl: true,
+          preferCanvas: true
+        }).setView([lat, lon], zoom);
+        
+        console.log('Map instance created:', !!fishingMap);
         
         // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -134,6 +326,16 @@
           maxZoom: 18,
           minZoom: 3
         }).addTo(fishingMap);
+        
+        console.log('✅ Tile layer added');
+        
+        // Invalidate size after a small delay to ensure rendering
+        setTimeout(() => {
+          if (fishingMap) {
+            fishingMap.invalidateSize();
+            console.log('✅ Map size invalidated');
+          }
+        }, 100);
         
         // Add fishing spots for Ukraine
         const fishingSpots = [
@@ -184,12 +386,12 @@
           fishingMap.removeLayer(currentMarker);
         }
         
-        // Create custom icon
+        // Create custom icon with fish emoji and orange gradient
         const fishIcon = L.divIcon({
           className: 'custom-fish-marker',
-          html: '<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          html: '<div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">🎣</div>',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
         });
         
         // Add new marker

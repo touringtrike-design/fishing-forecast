@@ -18,6 +18,11 @@ pub async fn create_pool(database_url: &str) -> anyhow::Result<SqlitePool> {
         .connect(&format!("{}?mode=rwc", database_url))
         .await?;
 
+    // Ensure UTF-8 encoding
+    sqlx::query("PRAGMA encoding = 'UTF-8'")
+        .execute(&pool)
+        .await?;
+
     // Initialize schema if needed
     sqlx::query(
         r#"
@@ -101,6 +106,39 @@ pub async fn create_pool(database_url: &str) -> anyhow::Result<SqlitePool> {
     )
     .execute(&pool)
     .await?;
+
+    // Seed fish species with proper UTF-8 encoding
+    let fish_data = vec![
+        ("pike", "\u{0429}\u{043A}\u{0443}\u{043A}\u{0430}", "Pike", "Esox lucius"),        // Щука
+        ("crucian", "\u{041A}\u{0430}\u{0440}\u{0430}\u{0441}\u{044C}", "Crucian carp", "Carassius carassius"), // Карась
+        ("perch", "\u{041E}\u{043A}\u{0443}\u{043D}\u{044C}", "Perch", "Perca fluviatilis"),  // Окунь
+        ("bream", "\u{041B}\u{044F}\u{0449}", "Bream", "Abramis brama"),                    // Лящ
+        ("zander", "\u{0421}\u{0443}\u{0434}\u{0430}\u{043A}", "Zander", "Sander lucioperca"), // Судак
+        ("carp", "\u{041A}\u{043E}\u{0440}\u{043E}\u{043F}", "Carp", "Cyprinus carpio"),    // Короп
+        ("catfish", "\u{0421}\u{043E}\u{043C}", "Catfish", "Silurus glanis"),               // Сом
+        ("roach", "\u{041F}\u{043B}\u{0456}\u{0442}\u{043A}\u{0430}", "Roach", "Rutilus rutilus"), // Плітка
+        ("common-carp", "\u{041A}\u{0430}\u{0440}\u{043F}", "Common carp", "Cyprinus carpio"), // Карп
+        ("tench", "\u{041B}\u{0438}\u{043D}", "Tench", "Tinca tinca"),                    // Лин
+    ];
+
+    for (id, name_uk, name_en, scientific_name) in fish_data {
+        sqlx::query(
+            r#"
+            INSERT OR IGNORE INTO fish_species (id, name_uk, name_en, scientific_name, best_season, preferred_bait, min_temp, max_temp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(id)
+        .bind(name_uk)
+        .bind(name_en)
+        .bind(scientific_name)
+        .bind("all_year")
+        .bind("worm")
+        .bind(5.0)
+        .bind(28.0)
+        .execute(&pool)
+        .await?;
+    }
 
     tracing::info!("Database schema initialized");
 
