@@ -1,0 +1,40 @@
+name: Deploy Frontend to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/frontend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Trunk
+        run: cargo install trunk
+
+      - name: Build WASM
+        working-directory: crates/frontend
+        run: trunk build --release
+
+      - name: Copy PWA assets
+        run: |
+          cp crates/frontend/assets/manifest.json crates/frontend/dist/
+          cp crates/frontend/assets/sw.js crates/frontend/dist/
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: fishing-forecast
+          directory: crates/frontend/dist
+          # Optional: wrangler config for environment variables
+          # wranglerConfigPath: wrangler.toml

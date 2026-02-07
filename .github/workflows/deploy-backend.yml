@@ -1,0 +1,30 @@
+name: Deploy Backend to Shuttle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/backend/**'
+      - 'crates/shared/**'
+      - 'crates/ml-engine/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Shuttle CLI
+        run: cargo install shuttle-cli
+
+      - name: Deploy to Shuttle
+        working-directory: crates/backend
+        run: |
+          shuttle deploy --api-key ${{ secrets.SHUTTLE_API_KEY }}
+        env:
+          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}

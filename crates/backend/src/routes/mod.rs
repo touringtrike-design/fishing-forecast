@@ -5,3 +5,4 @@ pub mod fish;
 pub mod regulations;
 pub mod catches;
 pub mod water_bodies;
+pub mod auth;

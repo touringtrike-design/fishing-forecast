@@ -150,10 +150,32 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
+    /// Get the API base URL (local for dev, production for release)
+    fn get_api_url() -> String {
+        #[cfg(debug_assertions)]
+        {
+            // Local development - try localhost first
+            "http://localhost:8080".to_string()
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            // Production - use environment variable or default shuttle URL
+            std::env::var("API_URL")
+                .unwrap_or_else(|_| "https://fishing-forecast-api.shuttleapp.rs".to_string())
+        }
+    }
+
     /// Create new API client with base URL
     pub fn new(base_url: &str) -> Self {
         Self {
             base_url: base_url.to_string(),
+        }
+    }
+
+    /// Create API client with auto-detected URL
+    pub fn new_auto() -> Self {
+        Self {
+            base_url: Self::get_api_url(),
         }
     }
 

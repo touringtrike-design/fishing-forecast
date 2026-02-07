@@ -1,3 +1,11 @@
 [build]
 target = "index.html"
 dist = "dist"
+
+[build.watch]
+watch = ["src", "assets"]
+
+[build.copy-wasm]
+manifest = false
+lock = false
+features = []
