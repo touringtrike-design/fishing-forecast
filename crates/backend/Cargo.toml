@@ -1,0 +1,28 @@
+[package]
+name = "fishing-backend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+reqwest = { workspace = true, features = ["json", "gzip", "brotli", "deflate"] }
+dotenvy = "0.15"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "uuid", "chrono"] }
+uuid.workspace = true
+
+fishing-shared = { path = "../shared" }
+
+[dependencies.tokio]
+workspace = true
+features = ["full"]

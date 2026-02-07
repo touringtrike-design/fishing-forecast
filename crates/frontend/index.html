@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fishing Forecast</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""></script>
+  </head>
+  <body>
+    <div id="main"></div>
+    
+    <script>
+      // Global variables for Leaflet map
+      let fishingMap = null;
+      let currentMarker = null;
+      let userMarker = null;
+      let windArrow = null;
+      let clickCallback = null;
+      let userLocation = null;
+      let currentWindDirection = 0;
+      
+      // Get user location
+      window.getUserLocation = function(callback) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+              };
+              callback(userLocation.lat, userLocation.lon);
+            },
+            function(error) {
+              console.error('Geolocation error:', error);
+              // Use default location if geolocation fails
+              userLocation = { lat: 50.45, lon: 30.52 }; // Kyiv default
+              callback(userLocation.lat, userLocation.lon);
+            }
+          );
+        } else {
+          console.log('Geolocation not supported');
+          userLocation = { lat: 50.45, lon: 30.52 };
+          callback(userLocation.lat, userLocation.lon);
+        }
+      };
+      
+      // Update user marker on map
+      window.updateUserMarker = function(lat, lon, heading, windDirection) {
+        if (!fishingMap) return;
+        
+        // Store wind direction
+        currentWindDirection = windDirection || 0;
+        
+        // Remove existing user marker
+        if (userMarker) {
+          fishingMap.removeLayer(userMarker);
+        }
+        if (windArrow) {
+          fishingMap.removeLayer(windArrow);
+        }
+        
+        // Create user icon (person viewed from top with compass arrow)
+        const userIcon = L.divIcon({
+          className: 'user-location-marker',
+          html: `<div style="position: relative; width: 40px; height: 40px;">
+            <!-- User circle with rotation -->
+            <div style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; 
+                        background: radial-gradient(circle at 30% 30%, #4f46e5, #3730a3);
+                        border: 3px solid white; border-radius: 50%; 
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                        display: flex; align-items: center; justify-content: center;">
+              <!-- Compass arrow pointing in heading direction -->
+              <div style="transform: rotate(${heading}deg); font-size: 18px;">⬆️</div>
+            </div>
+            <!-- User icon inside -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        font-size: 20px;">👤</div>
+          </div>`,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+        
+        userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(fishingMap);
+        userMarker.bindPopup('<strong>📍 Ваше місце розташування</strong>');
+        
+        // Add wind direction arrow
+        if (windDirection !== undefined && windDirection !== null) {
+          const windIcon = L.divIcon({
+            className: 'wind-arrow-marker',
+            html: `<div style="position: relative; width: 50px; height: 50px; 
+                              display: flex; align-items: center; justify-content: center;">
+              <div style="transform: rotate(${windDirection}deg); 
+                          font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));">
+                💨
+              </div>
+            </div>`,
+            iconSize: [50, 50],
+            iconAnchor: [25, 25]
+          });
+          
+          // Position wind arrow slightly offset from user marker
+          const offsetLat = lat + 0.003;
+          const offsetLon = lon + 0.003;
+          windArrow = L.marker([offsetLat, offsetLon], { icon: windIcon }).addTo(fishingMap);
+          windArrow.bindPopup(`<strong>💨 Вітер: ${(windDirection.toFixed(0))}°</strong>`);
+        }
+        
+        // Pan to user location
+        fishingMap.panTo([lat, lon]);
+      };
+      
+      // Initialize Leaflet map
+      window.initLeafletMap = function(containerId, lat, lon, zoom) {
+        if (fishingMap) {
+          fishingMap.remove();
+        }
+        
+        // Create map centered on Ukraine
+        fishingMap = L.map(containerId).setView([lat, lon], zoom);
+        
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 18,
+          minZoom: 3
+        }).addTo(fishingMap);
+        
+        // Add fishing spots for Ukraine
+        const fishingSpots = [
+          { name: 'Київське водосховище', lat: 50.6, lon: 30.5, fish: 'Щука, Окунь, Судак' },
+          { name: 'Канівське водосховище', lat: 49.4, lon: 31.5, fish: 'Лящ, Карась, Сом' },
+          { name: 'Дніпро (Запоріжжя)', lat: 47.85, lon: 35.15, fish: 'Судак, Щука, Короп' },
+          { name: 'Каховське водосховище', lat: 46.8, lon: 33.5, fish: 'Сом, Карась, Судак' },
+          { name: 'Десна', lat: 51.5, lon: 31.3, fish: 'Плотва, Лящ, Окунь' },
+          { name: 'Дністер', lat: 48.5, lon: 27.0, fish: 'Короп, Білий амур' },
+          { name: 'Південний Буг', lat: 48.0, lon: 30.2, fish: 'Лящ, Судак' },
+          { name: 'Сіверський Донець', lat: 49.0, lon: 37.8, fish: 'Щука, Окунь, Чехонь' }
+        ];
+        
+        fishingSpots.forEach(spot => {
+          const icon = L.divIcon({
+            className: 'fishing-spot-marker',
+            html: '<div style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🐟</div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+          
+          const marker = L.marker([spot.lat, spot.lon], { icon: icon }).addTo(fishingMap);
+          marker.bindPopup(`
+            <div style="min-width: 150px;">
+              <strong style="color: #1e40af;">🎣 ${spot.name}</strong><br/>
+              <span style="font-size: 12px; color: #64748b;">🐟 ${spot.fish}</span>
+            </div>
+          `);
+        });
+        
+        // Handle map clicks
+        fishingMap.on('click', function(e) {
+          const lat = e.latlng.lat;
+          const lon = e.latlng.lng;
+          
+          if (clickCallback) {
+            clickCallback(lat, lon);
+          }
+        });
+      };
+      
+      // Update or create marker
+      window.updateLeafletMarker = function(lat, lon) {
+        if (!fishingMap) return;
+        
+        // Remove existing marker
+        if (currentMarker) {
+          fishingMap.removeLayer(currentMarker);
+        }
+        
+        // Create custom icon
+        const fishIcon = L.divIcon({
+          className: 'custom-fish-marker',
+          html: '<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+        
+        // Add new marker
+        currentMarker = L.marker([lat, lon], { icon: fishIcon }).addTo(fishingMap);
+        
+        // Add popup with coordinates
+        currentMarker.bindPopup(`
+          <div style="text-align: center;">
+            <strong>🎣 Місце лову</strong><br/>
+            <span style="font-family: monospace;">${lat.toFixed(2)}°, ${lon.toFixed(2)}°</span>
+          </div>
+        `).openPopup();
+        
+        // Pan to marker
+        fishingMap.panTo([lat, lon]);
+      };
+      
+      // Set click handler callback
+      window.setLeafletClickHandler = function(callback) {
+        clickCallback = callback;
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/frontend",
+    "crates/backend",
+    "crates/shared",
+    "crates/ml-engine",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Fishing Forecast Team"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date and time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Geographic types
+geo = "0.27"
+geojson = "0.24"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP client (WASM compatible)
+reqwest = { version = "0.11", default-features = false, features = ["json"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Internationalization
+rust-i18n = "3.0"
+
+# UUID
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations
+strip = true        # Strip symbols from binary
+panic = "abort"     # Abort on panic (smaller binary)
+
+[profile.dev]
+opt-level = 0       # No optimization for faster compilation
+debug = true        # Include debug info

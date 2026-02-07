@@ -1,0 +1,14 @@
+[package]
+name = "fishing-ml-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+
+fishing-shared = { path = "../shared" }
