@@ -276,7 +276,8 @@
       
       // Update user marker on map
       window.updateUserMarker = function(lat, lon, heading, windDirection) {
-        console.log('📌 updateUserMarker called with:', lat.toFixed(4), lon.toFixed(4), 'fishingMap ready:', !!fishingMap);
+        const coordinatePrecision = 4; // Decimal places for coordinates
+        console.log('📌 updateUserMarker called with:', lat.toFixed(coordinatePrecision), lon.toFixed(coordinatePrecision), 'fishingMap ready:', !!fishingMap);
         
         if (!fishingMap) {
           console.log('⚠️ Map not ready for updateUserMarker, but continuing...');
@@ -292,7 +293,7 @@
           return;
         }
         
-        console.log('✅ Map is ready, adding user marker at', lat.toFixed(4), lon.toFixed(4));
+        console.log('✅ Map is ready, adding user marker at', lat.toFixed(coordinatePrecision), lon.toFixed(coordinatePrecision));
         
         // Normalize wind direction to 0-360 range
         const normalizedWindDirection = ((windDirection || 0) % 360 + 360) % 360;
@@ -320,7 +321,7 @@
         });
         
         userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(fishingMap);
-        userMarker.bindPopup(`<div style="text-align: center; padding: 5px;"><strong style="color: #2563eb;">📍 Ваше місце розташування</strong><br/><span style="font-family: monospace; font-size: 12px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span></div>`);
+        userMarker.bindPopup(`<div style="text-align: center; padding: 5px;"><strong style="color: #2563eb;">📍 Ваше місце розташування</strong><br/><span style="font-family: monospace; font-size: 12px;">${lat.toFixed(coordinatePrecision)}°, ${lon.toFixed(coordinatePrecision)}°</span></div>`);
         
         if (windDirection !== undefined && windDirection !== null) {
           // Create animated halo of wind arrows
@@ -330,7 +331,6 @@
           const delayIncrement = 0.25; // Animation delay between arrows
           const degreesInCircle = 360;
           const arrowRotationOffset = 90; // Rotate arrow to point in correct direction
-          const coordinatePrecision = 4; // Decimal places for coordinates
           let arrowsHtml = `<div class="wind-arrow-halo" style="position: relative; width: ${haloSize}px; height: ${haloSize}px;">`;
           
           for (let i = 0; i < arrowCount; i++) {
@@ -452,6 +452,7 @@
       
       // Update or create marker
       window.updateLeafletMarker = function(lat, lon) {
+        const coordinatePrecision = 4; // Decimal places for coordinates
         if (!fishingMap) return;
         
         if (currentMarker) {
@@ -497,7 +498,7 @@
         currentMarker.bindPopup(`
           <div style="text-align: center; padding: 8px;">
             <strong style="color: #16a34a; font-size: 15px;">🎣 Місце лову</strong><br/>
-            <span style="font-family: monospace; color: #64748b; font-size: 13px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span>
+            <span style="font-family: monospace; color: #64748b; font-size: 13px;">${lat.toFixed(coordinatePrecision)}°, ${lon.toFixed(coordinatePrecision)}°</span>
           </div>
         `).openPopup();
         
