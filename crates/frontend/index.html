@@ -294,7 +294,9 @@
         
         console.log('✅ Map is ready, adding user marker at', lat.toFixed(4), lon.toFixed(4));
         
-        currentWindDirection = windDirection || 0;
+        // Normalize wind direction to 0-360 range
+        const normalizedWindDirection = ((windDirection || 0) % 360 + 360) % 360;
+        currentWindDirection = normalizedWindDirection;
         
         if (userMarker) {
           fishingMap.removeLayer(userMarker);
@@ -328,10 +330,11 @@
           const delayIncrement = 0.25; // Animation delay between arrows
           const degreesInCircle = 360;
           const arrowRotationOffset = 90; // Rotate arrow to point in correct direction
+          const coordinatePrecision = 4; // Decimal places for coordinates
           let arrowsHtml = `<div class="wind-arrow-halo" style="position: relative; width: ${haloSize}px; height: ${haloSize}px;">`;
           
           for (let i = 0; i < arrowCount; i++) {
-            const angle = ((i * degreesInCircle / arrowCount) + windDirection) % degreesInCircle;
+            const angle = ((i * degreesInCircle / arrowCount) + normalizedWindDirection) % degreesInCircle;
             const radian = (angle * Math.PI) / 180;
             const x = haloSize / 2 + radius * Math.cos(radian);
             const y = haloSize / 2 + radius * Math.sin(radian);
@@ -362,7 +365,7 @@
           const offsetLat = lat + 0.003;
           const offsetLon = lon + 0.003;
           windArrow = L.marker([offsetLat, offsetLon], { icon: windIcon }).addTo(fishingMap);
-          windArrow.bindPopup(`<strong>💨 Вітер: ${(windDirection.toFixed(0))}°</strong>`);
+          windArrow.bindPopup(`<strong>💨 Вітер: ${normalizedWindDirection.toFixed(0)}°</strong>`);
         }
         
         fishingMap.panTo([lat, lon]);
