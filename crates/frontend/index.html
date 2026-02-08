@@ -210,41 +210,42 @@
         }
       }, 100);
       
-      // Add CSS animations for user marker
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes pulse-ring {
+      // Add CSS animations for wind halo
+      const windStyle = document.createElement('style');
+      windStyle.textContent = `
+        @keyframes wind-pulse {
           0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7), 0 0 0 10px rgba(59, 130, 246, 0.5);
-            }
-            50% {
-              box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.5), 0 0 0 20px rgba(59, 130, 246, 0.2);
-            }
-            100% {
-              box-shadow: 0 0 0 20px rgba(59, 130, 246, 0.2), 0 0 0 30px rgba(59, 130, 246, 0);
-            }
+            opacity: 0.3;
+            transform: scale(0.8);
           }
-          
-          @keyframes pulse-dot {
-            0%, 100% {
-              transform: scale(1);
-              opacity: 1;
-            }
-            50% {
-              transform: scale(1.1);
-              opacity: 0.9;
-            }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
           }
-          
-          .user-location-pulse {
-            animation: pulse-ring 2s infinite;
+          100% {
+            opacity: 0.3;
+            transform: scale(0.8);
           }
-          
-          .user-location-dot {
-            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes wind-float {
+          0%, 100% {
+            transform: translateY(0px);
           }
-        `;
-      document.head.appendChild(style);
+          50% {
+            transform: translateY(-8px);
+          }
+        }
+        
+        .wind-arrow-halo {
+          animation: wind-float 2s ease-in-out infinite;
+        }
+        
+        .wind-arrow-small {
+          animation: wind-pulse 2s ease-in-out infinite;
+        }
+      `;
+      document.head.appendChild(windStyle);
       
       // Update user marker on map
       window.updateUserMarker = function(lat, lon, heading, windDirection) {
@@ -277,38 +278,66 @@
         
         const userIcon = L.divIcon({
           className: 'user-location-marker user-location-dot',
-          html: `<svg width="56" height="66" viewBox="0 0 56 66">
-            <circle cx="28" cy="8" r="8" fill="#ff5252" stroke="#ff5252" stroke-width="1.5"/>
-            <ellipse cx="23" cy="5" rx="2" ry="2.5" fill="#ff8a80" opacity="0.6"/>
-            <rect x="26" y="16" width="4" height="40" rx="2" fill="#3d4d57"/>
-            <line x1="8" y1="56" x2="48" y2="56" stroke="#3d4d57" stroke-width="6" stroke-linecap="round"/>
-            <line x1="28" y1="40" x2="28" y2="66" stroke="#3d4d57" stroke-width="6" stroke-linecap="round"/>
+          html: `<svg width="56" height="56" viewBox="0 0 56 56">
+            <!-- Red fishing ball at top -->
+            <circle cx="28" cy="10" r="8" fill="#ff5252" stroke="#ff5252" stroke-width="1.5"/>
+            <!-- Shimmer highlight -->
+            <ellipse cx="23" cy="7" rx="2" ry="2.5" fill="#ff8a80" opacity="0.6"/>
+            <!-- Stem connecting to crosshair -->
+            <rect x="26" y="18" width="4" height="18" rx="2" fill="#3d4d57"/>
+            <!-- Crosshair horizontal -->
+            <line x1="10" y1="38" x2="46" y2="38" stroke="#3d4d57" stroke-width="5" stroke-linecap="round"/>
+            <!-- Crosshair vertical -->
+            <line x1="28" y1="22" x2="28" y2="56" stroke="#3d4d57" stroke-width="5" stroke-linecap="round"/>
           </svg>`,
-          iconSize: [56, 66],
-          iconAnchor: [28, 56],
-          popupAnchor: [0, -50]
+          iconSize: [56, 56],
+          iconAnchor: [28, 38],
+          popupAnchor: [0, -40]
         });
         
         userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(fishingMap);
         userMarker.bindPopup(`<div style="text-align: center; padding: 5px;"><strong style="color: #2563eb;">📍 Ваше місце розташування</strong><br/><span style="font-family: monospace; font-size: 12px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span></div>`);
         
         if (windDirection !== undefined && windDirection !== null) {
+          // Create wind halo with multiple animated arrows
+          const numArrows = 6; // 6 arrows in a circle
+          const baseDistance = 50; // Distance from center
+          
+          // Create SVG with animated arrow halo
           const windIcon = L.divIcon({
-            className: 'wind-arrow-marker',
-            html: `<div style="position: relative; width: 50px; height: 50px; 
-                      display: flex; align-items: center; justify-content: center;">
-              <div style="transform: rotate(${windDirection}deg); 
-                          font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));">
-                💨
-              </div>
-            </div>`,
-            iconSize: [50, 50],
-            iconAnchor: [25, 25]
+            className: 'wind-arrow-halo',
+            html: `<svg width="120" height="120" viewBox="0 0 120 120" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+              <!-- Center circle -->
+              <circle cx="60" cy="60" r="8" fill="#2563eb" opacity="0.7"/>
+              
+              <!-- Create arrow rays pointing outward from main wind direction -->
+              ${Array.from({ length: numArrows }).map((_, i) => {
+                const angle = (windDirection + (i - Math.floor(numArrows / 2)) * 60) * Math.PI / 180;
+                const x = 60 + Math.cos(angle) * 35;
+                const y = 60 + Math.sin(angle) * 35;
+                const arrowAngle = windDirection + (i - Math.floor(numArrows / 2)) * 60;
+                const opacity = i === Math.floor(numArrows / 2) ? 1 : 0.6;
+                const scale = i === Math.floor(numArrows / 2) ? 1 : 0.7;
+                
+                return `
+                  <g transform="translate(${x}, ${y}) rotate(${arrowAngle})" opacity="${opacity}" style="transform-origin: center">
+                    <!-- Arrow head -->
+                    <polygon points="0,-15 8,-2 -8,-2" fill="#3b82f6" style="transform: scale(${scale})"/>
+                    <!-- Arrow shaft -->
+                    <line x1="0" y1="-15" x2="0" y2="10" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" style="transform: scale(${scale})"/>
+                  </g>
+                `;
+              }).join('')}
+              
+              <!-- Outer ring that pulses -->
+              <circle cx="60" cy="60" r="45" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.4" style="animation: wind-pulse 2s ease-in-out infinite;"/>
+            </svg>`,
+            iconSize: [120, 120],
+            iconAnchor: [60, 60],
+            popupAnchor: [0, -70]
           });
           
-          const offsetLat = lat + 0.003;
-          const offsetLon = lon + 0.003;
-          windArrow = L.marker([offsetLat, offsetLon], { icon: windIcon }).addTo(fishingMap);
+          windArrow = L.marker([lat, lon], { icon: windIcon }).addTo(fishingMap);
           windArrow.bindPopup(`<strong>💨 Вітер: ${(windDirection.toFixed(0))}°</strong>`);
         }
         
