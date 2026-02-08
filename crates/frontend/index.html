@@ -324,14 +324,16 @@
           // Create animated halo of wind arrows
           const arrowCount = 8;
           const radius = 35;
-          let arrowsHtml = '<div class="wind-arrow-halo" style="position: relative; width: 100px; height: 100px;">';
+          const haloSize = 100; // Total size of the halo container
+          const delayIncrement = 0.25; // Animation delay between arrows
+          let arrowsHtml = `<div class="wind-arrow-halo" style="position: relative; width: ${haloSize}px; height: ${haloSize}px;">`;
           
           for (let i = 0; i < arrowCount; i++) {
-            const angle = (i * 360 / arrowCount) + windDirection;
+            const angle = ((i * 360 / arrowCount) + windDirection) % 360;
             const radian = (angle * Math.PI) / 180;
-            const x = 50 + radius * Math.cos(radian);
-            const y = 50 + radius * Math.sin(radian);
-            const delay = i * 0.25;
+            const x = haloSize / 2 + radius * Math.cos(radian);
+            const y = haloSize / 2 + radius * Math.sin(radian);
+            const delay = i * delayIncrement;
             
             arrowsHtml += `
               <div class="wind-arrow-item" style="
@@ -351,8 +353,8 @@
           const windIcon = L.divIcon({
             className: 'wind-arrow-marker',
             html: arrowsHtml,
-            iconSize: [100, 100],
-            iconAnchor: [50, 50]
+            iconSize: [haloSize, haloSize],
+            iconAnchor: [haloSize / 2, haloSize / 2]
           });
           
           const offsetLat = lat + 0.003;
