@@ -1,7 +1,6 @@
 use axum::{extract::State, response::IntoResponse, Json};
-use serde::Deserialize;
 
-use crate::{services::auth::{self, LoginRequest, RegisterRequest, UserResponse}, AppState};
+use crate::{services::auth::{self, LoginRequest, RegisterRequest}, AppState};
 
 /// Register new user
 /// POST /api/v1/auth/register

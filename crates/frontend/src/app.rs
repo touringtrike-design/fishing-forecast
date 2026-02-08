@@ -62,6 +62,7 @@ pub fn App() -> Element {
             }
         });
     }
+
     
     // Save location to localStorage whenever it changes
     use_effect(move || {
@@ -78,36 +79,22 @@ pub fn App() -> Element {
     
     // Handle location selection from map
     let on_location_selected = {
-        to_owned![selected_location, forecast, is_loading, error, api_client, user_location, show_forecast_panel];
+        to_owned![selected_location, show_forecast_panel, forecast, is_loading, error, api_client, user_location];
         move |(lat, lon): (f64, f64)| {
+            let mut selected_location = selected_location;
+            let mut show_forecast_panel = show_forecast_panel;
             selected_location.set(Some((lat, lon)));
-            is_loading.set(true);
-            error.set(None);
             show_forecast_panel.set(true);
-            
-            // Fetch forecast
-            spawn({
-                to_owned![forecast, is_loading, error, api_client, user_location];
-                async move {
-                    match api_client.get_forecast(lat, lon, None).await {
-                        Ok(result) => {
-                            let wind_dir = result.weather.wind_direction;
-                            
-                            // Update user marker with wind direction if we have user location
-                            if let Some((ulat, ulon)) = *user_location.read() {
-                                updateUserMarker(ulat, ulon, 0.0, wind_dir);
-                            }
-                            
-                            forecast.set(Some(result));
-                            is_loading.set(false);
-                        }
-                        Err(e) => {
-                            error.set(Some(e.to_string()));
-                            is_loading.set(false);
-                        }
-                    }
-                }
-            });
+
+            spawn_forecast(
+                api_client.clone(),
+                lat,
+                lon,
+                forecast,
+                is_loading,
+                error,
+                user_location,
+            );
         }
     };
     
@@ -146,11 +133,13 @@ pub fn App() -> Element {
                 div {
                     class: "flex items-center justify-between",
                     h1 { class: "text-lg font-bold", "🎣 Прогноз Клювання" }
-                    if selected_location().is_some() {
-                        button {
-                            class: "text-white hover:bg-blue-800 px-3 py-1 rounded text-sm",
-                            onclick: move |_| show_forecast_panel.set(!show_forecast_panel()),
-                            if show_forecast_panel() { "▼ Сховати" } else { "▲ Показати" }
+                    div { class: "flex items-center gap-2",
+                        if selected_location().is_some() {
+                            button {
+                                class: "text-white hover:bg-blue-800 px-3 py-1 rounded text-sm",
+                                onclick: move |_| show_forecast_panel.set(!show_forecast_panel()),
+                                if show_forecast_panel() { "▼ Сховати" } else { "▲ Показати" }
+                            }
                         }
                     }
                 }
@@ -193,10 +182,23 @@ pub fn App() -> Element {
             
             // Floating Action Button for adding catch
             button {
-                class: "fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-16 h-16 shadow-lg flex items-center justify-center text-3xl z-40 transition-all hover:scale-110 active:scale-95",
+                class: "fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-16 h-16 shadow-lg flex items-center justify-center z-40 transition-all hover:scale-110 active:scale-95 p-3",
                 onclick: move |_| show_catch_form.set(true),
                 title: "Зареєструвати улов",
-                "🎣"
+                dangerous_inner_html: r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 110" width="100%" height="100%" style="display: block;">
+                    <g>
+                        <circle cx="30" cy="22" r="11" fill="white"/>
+                        <path d="M 20 32 Q 20 30, 22 28 L 38 28 Q 40 30, 40 32 L 40 55 Q 40 58, 37 58 L 23 58 Q 20 58, 20 55 Z" fill="white"/>
+                        <path d="M 22 32 Q 18 35, 17 42 Q 16 45, 18 47 L 25 50 Q 26 49, 25 47 L 22 38 Z" fill="white"/>
+                        <path d="M 38 32 Q 42 35, 45 42 L 48 45 Q 49 46, 48 47 L 41 50 Q 40 49, 41 47 L 38 38 Z" fill="white"/>
+                        <rect x="20" y="56" width="20" height="38" rx="3" fill="white" opacity="0.9"/>
+                        <path d="M 22 94 L 22 102 Q 22 104, 24 104 L 28 104 Q 30 104, 30 102 L 30 94 Z" fill="white" opacity="0.9"/>
+                        <path d="M 30 94 L 30 102 Q 30 104, 32 104 L 36 104 Q 38 104, 38 102 L 38 94 Z" fill="white" opacity="0.9"/>
+                        <line x1="48" y1="45" x2="75" y2="18" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="48" y1="45" x2="80" y2="8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="80" y1="8" x2="85" y2="35" stroke="white" stroke-width="0.8" opacity="0.7"/>
+                    </g>
+                </svg>"#
             }
             
             // Catch form modal
@@ -229,6 +231,43 @@ fn parse_coordinates(data: &str) -> Option<(f64, f64)> {
         }
     }
     None
+}
+
+fn spawn_forecast(
+    api_client: ApiClient,
+    lat: f64,
+    lon: f64,
+    forecast: Signal<Option<ForecastResponse>>,
+    is_loading: Signal<bool>,
+    error: Signal<Option<String>>,
+    user_location: Signal<Option<(f64, f64)>>,
+) {
+    let mut is_loading = is_loading;
+    let mut error = error;
+    let mut forecast = forecast;
+
+    is_loading.set(true);
+    error.set(None);
+
+    spawn(async move {
+        match api_client.get_forecast(lat, lon, None).await {
+            Ok(result) => {
+                let wind_dir = result.weather.wind_direction;
+
+                // Update user marker with wind direction if we have user location
+                if let Some((ulat, ulon)) = *user_location.read() {
+                    updateUserMarker(ulat, ulon, 0.0, wind_dir);
+                }
+
+                forecast.set(Some(result));
+                is_loading.set(false);
+            }
+            Err(e) => {
+                error.set(Some(e.to_string()));
+                is_loading.set(false);
+            }
+        }
+    });
 }
 
 

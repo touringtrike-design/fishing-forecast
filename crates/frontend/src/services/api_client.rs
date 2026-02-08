@@ -422,7 +422,12 @@ impl ApiClient {
     }
 
     /// Get forecast from local backend server
-    async fn get_backend_forecast(&self, lat: f64, lon: f64, fish: Option<&str>) -> Result<ForecastResponse, ApiError> {
+    async fn get_backend_forecast(
+        &self,
+        lat: f64,
+        lon: f64,
+        fish: Option<&str>,
+    ) -> Result<ForecastResponse, ApiError> {
         let mut url = format!(
             "http://localhost:8080/api/v1/forecast?lat={}&lon={}",
             lat, lon

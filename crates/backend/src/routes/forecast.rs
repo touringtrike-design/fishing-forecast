@@ -19,7 +19,9 @@ pub async fn forecast_handler(
     match build_forecast_ml(&state.http, query.lat, query.lon, query.fish.as_deref()).await {
         Ok(result) => Json(result).into_response(),
         Err(err) => {
-            let body = serde_json::json!({"error": err.to_string()});
+            let message = format!("{:#}", err);
+            tracing::error!("Forecast error: {}", message);
+            let body = serde_json::json!({"error": message});
             (axum::http::StatusCode::BAD_GATEWAY, Json(body)).into_response()
         }
     }
@@ -33,7 +35,9 @@ pub async fn detailed_forecast_handler(
     match get_detailed_prediction(&state.http, query.lat, query.lon).await {
         Ok(result) => Json(result).into_response(),
         Err(err) => {
-            let body = serde_json::json!({"error": err.to_string()});
+            let message = format!("{:#}", err);
+            tracing::error!("Detailed forecast error: {}", message);
+            let body = serde_json::json!({"error": message});
             (axum::http::StatusCode::BAD_GATEWAY, Json(body)).into_response()
         }
     }

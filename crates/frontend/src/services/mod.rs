@@ -4,4 +4,5 @@ pub mod geolocation;
 pub mod map_service;
 
 pub use api_client::ApiClient;
-pub use map_service::{init_map, update_marker};
+// Unused map service functions - kept for future use
+// pub use map_service::{init_map, update_marker};

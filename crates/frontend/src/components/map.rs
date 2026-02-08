@@ -35,7 +35,7 @@ pub struct MapViewProps {
 pub fn MapView(props: MapViewProps) -> Element {
     let on_click = props.on_location_selected.clone();
     let mut map_initialized = use_signal(|| false);
-    let mut user_location = use_signal(|| (50.45, 30.52)); // Kyiv default
+    let _user_location = use_signal(|| (50.45, 30.52)); // Kyiv default
     
     // Initialize map on first render
     use_effect(move || {

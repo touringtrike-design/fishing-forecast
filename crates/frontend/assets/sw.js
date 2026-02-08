@@ -8,8 +8,7 @@ const STATIC_RESOURCES = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/images/fishing-icon.svg'
 ];
 
 // API endpoints to cache

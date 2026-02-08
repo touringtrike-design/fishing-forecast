@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 550 582" width="550" height="582">
+  <!-- Background -->
+  <rect width="550" height="582" fill="#2B2438"/>
+  
+  <!-- Head -->
+  <circle cx="119" cy="148" r="44" fill="#FFBF9D"/>
+  
+  <!-- Body/Shirt -->
+  <ellipse cx="147" cy="270" rx="52" ry="75" fill="#6BB6FF"/>
+  <path d="M 95 235 Q 95 200 119 190 Q 145 185 165 200 Q 182 217 182 240 L 182 300 Q 180 320 165 335 L 130 335 Q 112 320 110 300 Z" fill="#5BA5EF"/>
+  
+  <!-- Arms -->
+  <ellipse cx="90" cy="280" rx="20" ry="55" fill="#FFBF9D" transform="rotate(-20 90 280)"/>
+  <ellipse cx="200" cy="290" rx="22" ry="60" fill="#FFBF9D" transform="rotate(45 200 290)"/>
+  
+  <!-- Pants -->
+  <rect x="110" y="335" width="35" height="95" rx="8" fill="#5B5B8C"/>
+  <rect x="145" y="335" width="35" height="95" rx="8" fill="#4A4A7C"/>
+  
+  <!-- Chair -->
+  <!-- Seat -->
+  <rect x="70" y="330" width="130" height="15" rx="5" fill="#5A8C3A"/>
+  <!-- Legs -->
+  <line x1="80" y1="345" x2="65" y2="420" stroke="#5A8C3A" stroke-width="10" stroke-linecap="round"/>
+  <line x1="190" y1="345" x2="205" y2="420" stroke="#5A8C3A" stroke-width="10" stroke-linecap="round"/>
+  <line x1="65" y1="420" x2="115" y2="445" stroke="#5A8C3A" stroke-width="10" stroke-linecap="round"/>
+  <line x1="205" y1="420" x2="155" y2="445" stroke="#5A8C3A" stroke-width="10" stroke-linecap="round"/>
+  <!-- Backrest -->
+  <line x1="75" y1="250" x2="70" y2="335" stroke="#5A8C3A" stroke-width="10" stroke-linecap="round"/>
+  
+  <!-- Fishing Rod -->
+  <line x1="220" y1="305" x2="505" y2="73" stroke="#7BA5BC" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="508" cy="68" r="18" fill="#8BA5B5"/>
+  <circle cx="508" cy="68" r="12" fill="#6B8595"/>
+  
+  <!-- Fishing Line -->
+  <line x1="508" y1="68" x2="520" y2="240" stroke="#C5D5E5" stroke-width="3"/>
+</svg>

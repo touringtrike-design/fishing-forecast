@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 use fishing_shared::types::WeatherCurrent;
 
+// ========== Open-Meteo Structures ==========
 #[derive(Debug, Deserialize)]
 struct OpenMeteoCurrent {
     temperature_2m: f64,
@@ -20,7 +21,7 @@ struct OpenMeteoResponse {
     current: OpenMeteoCurrent,
 }
 
-/// Fetch current weather from Open-Meteo.
+/// Fetch current weather from Open-Meteo (безкоштовний).
 pub async fn fetch_current_weather(
     http: &reqwest::Client,
     lat: f64,
@@ -31,7 +32,7 @@ pub async fn fetch_current_weather(
         lat, lon
     );
 
-    tracing::debug!("Fetching weather from: {}", url);
+    tracing::debug!("Fetching weather from Open-Meteo: {}", url);
 
     let resp = http
         .get(&url)
@@ -44,7 +45,7 @@ pub async fn fetch_current_weather(
         .await
         .context("open-meteo json parse failed")?;
 
-    tracing::debug!("Weather response: {:?}", resp);
+    tracing::debug!("Open-Meteo response: {:?}", resp);
 
     // Parse time - Open-Meteo returns simplified format like "2026-02-07T16:45"
     let time = if let Ok(parsed) = DateTime::parse_from_rfc3339(&format!("{}:00+00:00", resp.current.time)) {

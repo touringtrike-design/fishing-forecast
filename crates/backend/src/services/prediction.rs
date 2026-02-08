@@ -1,7 +1,7 @@
 use anyhow::Context;
 use chrono::{Datelike, Timelike};
 use fishing_ml_engine::{
-    create_features, FeatureImportance, GradientBoostingModel, ModelRegistry,
+    create_features, FeatureImportance, ModelRegistry,
     PredictionResult, TrainingSample,
 };
 use fishing_shared::{
