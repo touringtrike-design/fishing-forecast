@@ -75,6 +75,7 @@
       let clickCallback = null;
       let userLocation = null;
       let currentWindDirection = 0;
+      const coordinatePrecision = 4; // Decimal places for coordinates display
       
       // Offline status indicator
       window.addEventListener('online', () => {
@@ -276,7 +277,6 @@
       
       // Update user marker on map
       window.updateUserMarker = function(lat, lon, heading, windDirection) {
-        const coordinatePrecision = 4; // Decimal places for coordinates
         console.log('📌 updateUserMarker called with:', lat.toFixed(coordinatePrecision), lon.toFixed(coordinatePrecision), 'fishingMap ready:', !!fishingMap);
         
         if (!fishingMap) {
@@ -452,7 +452,6 @@
       
       // Update or create marker
       window.updateLeafletMarker = function(lat, lon) {
-        const coordinatePrecision = 4; // Decimal places for coordinates
         if (!fishingMap) return;
         
         if (currentMarker) {
