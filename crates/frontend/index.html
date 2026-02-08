@@ -210,7 +210,7 @@
         }
       }, 100);
       
-      // Add CSS animations for user marker
+      // Add CSS animations for user marker and wind arrows
       const style = document.createElement('style');
       style.textContent = `
         @keyframes pulse-ring {
@@ -236,12 +236,40 @@
             }
           }
           
+          @keyframes rotate-wind {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+          
+          @keyframes wind-pulse {
+            0%, 100% {
+              opacity: 0.7;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.1);
+            }
+          }
+          
           .user-location-pulse {
             animation: pulse-ring 2s infinite;
           }
           
           .user-location-dot {
             animation: pulse-dot 2s infinite;
+          }
+          
+          .wind-arrow-halo {
+            animation: rotate-wind 8s linear infinite;
+          }
+          
+          .wind-arrow-item {
+            animation: wind-pulse 2s ease-in-out infinite;
           }
         `;
       document.head.appendChild(style);
@@ -293,17 +321,38 @@
         userMarker.bindPopup(`<div style="text-align: center; padding: 5px;"><strong style="color: #2563eb;">📍 Ваше місце розташування</strong><br/><span style="font-family: monospace; font-size: 12px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span></div>`);
         
         if (windDirection !== undefined && windDirection !== null) {
+          // Create animated halo of wind arrows
+          const arrowCount = 8;
+          const radius = 35;
+          let arrowsHtml = '<div class="wind-arrow-halo" style="position: relative; width: 100px; height: 100px;">';
+          
+          for (let i = 0; i < arrowCount; i++) {
+            const angle = (i * 360 / arrowCount) + windDirection;
+            const radian = (angle * Math.PI) / 180;
+            const x = 50 + radius * Math.cos(radian);
+            const y = 50 + radius * Math.sin(radian);
+            const delay = i * 0.25;
+            
+            arrowsHtml += `
+              <div class="wind-arrow-item" style="
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                transform: translate(-50%, -50%) rotate(${angle + 90}deg);
+                font-size: 18px;
+                animation-delay: ${delay}s;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+              ">➤</div>
+            `;
+          }
+          
+          arrowsHtml += '</div>';
+          
           const windIcon = L.divIcon({
             className: 'wind-arrow-marker',
-            html: `<div style="position: relative; width: 50px; height: 50px; 
-                      display: flex; align-items: center; justify-content: center;">
-              <div style="transform: rotate(${windDirection}deg); 
-                          font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));">
-                💨
-              </div>
-            </div>`,
-            iconSize: [50, 50],
-            iconAnchor: [25, 25]
+            html: arrowsHtml,
+            iconSize: [100, 100],
+            iconAnchor: [50, 50]
           });
           
           const offsetLat = lat + 0.003;
@@ -402,19 +451,46 @@
           fishingMap.removeLayer(currentMarker);
         }
         
+        // Create improved fishing location marker with animation
         const fishIcon = L.divIcon({
           className: 'custom-fish-marker',
-          html: '<div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">🎣</div>',
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
+          html: `
+            <div style="position: relative; width: 50px; height: 50px;">
+              <!-- Outer glow ring -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                          width: 50px; height: 50px; border-radius: 50%;
+                          background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, transparent 70%);
+                          animation: pulse-ring 2s infinite;"></div>
+              
+              <!-- Main marker circle -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                          width: 42px; height: 42px; border-radius: 50%;
+                          background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
+                          border: 3px solid white;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+                          display: flex; align-items: center; justify-content: center;">
+                
+                <!-- Fishing icon -->
+                <span style="font-size: 24px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">🎣</span>
+              </div>
+              
+              <!-- Small ripple effect -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                          width: 60px; height: 60px; border-radius: 50%;
+                          border: 2px solid rgba(34, 197, 94, 0.5);
+                          animation: pulse-dot 2s infinite;"></div>
+            </div>
+          `,
+          iconSize: [50, 50],
+          iconAnchor: [25, 25]
         });
         
         currentMarker = L.marker([lat, lon], { icon: fishIcon }).addTo(fishingMap);
         
         currentMarker.bindPopup(`
-          <div style="text-align: center;">
-            <strong>🎣 Місце лову</strong><br/>
-            <span style="font-family: monospace;">${lat.toFixed(2)}°, ${lon.toFixed(2)}°</span>
+          <div style="text-align: center; padding: 8px;">
+            <strong style="color: #16a34a; font-size: 15px;">🎣 Місце лову</strong><br/>
+            <span style="font-family: monospace; color: #64748b; font-size: 13px;">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</span>
           </div>
         `).openPopup();
         
