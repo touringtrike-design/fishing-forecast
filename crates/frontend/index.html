@@ -326,10 +326,12 @@
           const radius = 35;
           const haloSize = 100; // Total size of the halo container
           const delayIncrement = 0.25; // Animation delay between arrows
+          const degreesInCircle = 360;
+          const arrowRotationOffset = 90; // Rotate arrow to point in correct direction
           let arrowsHtml = `<div class="wind-arrow-halo" style="position: relative; width: ${haloSize}px; height: ${haloSize}px;">`;
           
           for (let i = 0; i < arrowCount; i++) {
-            const angle = ((i * 360 / arrowCount) + windDirection) % 360;
+            const angle = ((i * degreesInCircle / arrowCount) + windDirection) % degreesInCircle;
             const radian = (angle * Math.PI) / 180;
             const x = haloSize / 2 + radius * Math.cos(radian);
             const y = haloSize / 2 + radius * Math.sin(radian);
@@ -340,7 +342,7 @@
                 position: absolute;
                 left: ${x}px;
                 top: ${y}px;
-                transform: translate(-50%, -50%) rotate(${angle + 90}deg);
+                transform: translate(-50%, -50%) rotate(${angle + arrowRotationOffset}deg);
                 font-size: 18px;
                 animation-delay: ${delay}s;
                 filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
